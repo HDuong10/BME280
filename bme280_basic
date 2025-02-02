@@ -1,4 +1,4 @@
-#include <Wire.h>			 // Schnittstelle für I2C
+#include <Wire.h>            // Schnittstelle für I2C
 #include <Adafruit_Sensor.h> // Adafruit Unified Sensor
 #include <Adafruit_BME280.h> // Adafruit BME280
 
