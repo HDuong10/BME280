@@ -1,0 +1,70 @@
+#include <Wire.h>
+#include <Adafruit_Sensor.h> // Adafruit Unified Sensor
+#include <Adafruit_BME280.h> // Adafruit BME280
+
+// I2C-Adressen des BME280
+#define BME280_I2C_ADDRESS 0x76 // Standardadresse des BME280
+#define SDA_PIN 21             // SDA Pin
+#define SCL_PIN 22             // SCL Pin
+
+Adafruit_BME280 bme;
+
+/*
+void setup() {
+  Serial.begin(115200);
+  Wire.begin(21, 22);  // Standard-SDA und SCL für ESP32
+  Serial.println("\nI2C Scanner gestartet...");
+}
+
+void loop() {
+  Serial.println("Scanne I2C-Bus...");
+  for (uint8_t address = 1; address < 127; ++address) {
+    Wire.beginTransmission(address);
+    if (Wire.endTransmission() == 0) {
+      Serial.print("I2C Gerät gefunden bei Adresse: 0x");
+      Serial.println(address, HEX);
+      delay(1000);
+    }
+  }
+  delay(5000); // 5 Sekunden warten
+}*/
+
+
+void setup() {
+  Serial.begin(115200); 
+  Serial.println(F("BME280 Check"));
+
+  // I2C-Schnittstelle initialisieren
+  Wire.begin(SDA_PIN, SCL_PIN);
+
+  if (!bme.begin(BME280_I2C_ADDRESS)) {
+    Serial.println("BME280 konnte nicht gefunden werden. Überprüfe die Verbindung!");
+    while (1) {
+      delay(1000); // Schleife, wenn BME280 nicht erkannt wird
+    }
+  }
+  Serial.println("BME280 erfolgreich initialisiert!");
+}
+
+void loop() {
+  // Sensorwerte auslesen
+  float temperatur = bme.readTemperature();
+  float feuchtigkeit = bme.readHumidity();
+  float luftdruck = bme.readPressure() / 100.0F; // Druck in hPa
+
+  // Werte in Terminal anzeigen
+  Serial.print("Temperatur: ");
+  Serial.print(temperatur);
+  Serial.println(" °C");
+
+  Serial.print("Luftfeuchtigkeit: ");
+  Serial.print(feuchtigkeit);
+  Serial.println(" %");
+
+  Serial.print("Luftdruck: ");
+  Serial.print(luftdruck);
+  Serial.println(" hPa");
+
+  Serial.println("-----------------------");
+  delay(2000);
+}
