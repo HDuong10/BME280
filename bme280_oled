@@ -1,0 +1,154 @@
+#include <Wire.h>
+#include <Adafruit_BME280.h>
+#include <Adafruit_SSD1306.h>
+#include <RTClib.h>
+
+// =====================
+// Definition der Pins und Adressen
+// =====================
+#define SDA_PIN 21              // I2C SDA-Pin (z. B. ESP32)
+#define SCL_PIN 22              // I2C SCL-Pin (z. B. ESP32)
+#define BME280_I2C_ADDRESS 0x76 // Standardadresse des BME280
+
+// OLED Display Einstellungen
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1           // Reset-Pin des OLEDs (-1, wenn nicht separat verwendet)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// RTC (DS3231) Objekt
+RTC_DS3231 rtc;
+
+// BME280 Sensor Objekt
+Adafruit_BME280 bme;
+
+// =====================
+// Alarm-Einstellungen
+// =====================
+const int alarmHour = 7;     // Beispiel: Alarm um 07:00:00
+const int alarmMinute = 0;   // 
+bool alarmTriggered = false; // Flag, damit der Alarm nicht mehrfach ausgelöst wird
+
+// Buzzer-Pin (Alarm)
+const int buzzerPin = 15;
+
+void setup() {
+  // Serielle Kommunikation starten
+  Serial.begin(115200);
+  Serial.println(F("Systemstart: Wetterstation & Digitaler Wecker"));
+
+  // I2C initialisieren
+  Wire.begin(SDA_PIN, SCL_PIN);
+
+  // OLED Display initialisieren
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // 0x3C ist oft die I2C-Adresse
+    Serial.println("OLED Display konnte nicht initialisiert werden!");
+    while (1);
+  }
+  display.clearDisplay();
+  display.display();
+
+  // RTC initialisieren
+  if (!rtc.begin()) {
+    Serial.println("RTC nicht gefunden!");
+    while (1);
+  }
+  // Zum ersten Mal die RTC auf die aktuelle Kompilierzeit setzen:
+  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
+  // BME280 initialisieren
+  if (!bme.begin(BME280_I2C_ADDRESS)) {
+    Serial.println("BME280 Sensor nicht gefunden. Überprüfe die Verkabelung!");
+    while (1);
+  }
+
+  // Buzzer Pin als Ausgang konfigurieren
+  pinMode(buzzerPin, OUTPUT);
+  digitalWrite(buzzerPin, LOW);
+
+  Serial.println("System erfolgreich initialisiert.");
+}
+
+void loop() {
+  // Sensorwerte vom BME280 auslesen
+  float temperatur = bme.readTemperature();          // °C
+  float feuchtigkeit = bme.readHumidity();             // %
+  float luftdruck = bme.readPressure() / 100.0F;         // hPa
+
+  // Aktuelle Uhrzeit vom RTC abrufen
+  DateTime jetzt = rtc.now();
+
+  // =====================
+  // Anzeige auf dem OLED-Display
+  // =====================
+  display.clearDisplay();
+
+  // Uhrzeit (groß) anzeigen
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  char timeStr[9];
+  sprintf(timeStr, "%02d:%02d:%02d", jetzt.hour(), jetzt.minute(), jetzt.second());
+  display.setCursor(0, 0);
+  display.println(timeStr);
+
+  // Datum anzeigen (klein)
+  display.setTextSize(1);
+  char dateStr[11];
+  sprintf(dateStr, "%02d/%02d/%04d", jetzt.day(), jetzt.month(), jetzt.year());
+  display.setCursor(0, 20);
+  display.println(dateStr);
+
+  // Sensorwerte anzeigen
+  display.setCursor(0, 35);
+  display.print("T: ");
+  display.print(temperatur, 1);
+  display.print(" C");
+
+  display.setCursor(0, 45);
+  display.print("H: ");
+  display.print(feuchtigkeit, 1);
+  display.print(" %");
+
+  display.setCursor(0, 55);
+  display.print("P: ");
+  display.print(luftdruck, 1);
+  display.print(" hPa");
+
+  display.display();
+
+  // =====================
+  // Alarm-Funktion (digitaler Wecker)
+  // =====================
+  // Wenn die aktuelle Stunde und Minute mit der Alarmzeit übereinstimmen...
+  if (jetzt.hour() == alarmHour && jetzt.minute() == alarmMinute) {
+    if (!alarmTriggered) {
+      Serial.println("Alarm wird ausgelöst!");
+      // Alarm: Buzzer für ca. 5 Sekunden piepen lassen
+      for (int i = 0; i < 5; i++) {
+        digitalWrite(buzzerPin, HIGH);
+        delay(500);
+        digitalWrite(buzzerPin, LOW);
+        delay(500);
+      }
+      alarmTriggered = true;  // Alarm als ausgelöst markieren
+    }
+  } else {
+    // Wenn die Alarmminute vorbei ist, wird der Alarm wieder zurückgesetzt
+    alarmTriggered = false;
+  }
+
+  // Serielle Debug-Ausgabe
+  Serial.print("Zeit: ");
+  Serial.print(timeStr);
+  Serial.print(" | Datum: ");
+  Serial.print(dateStr);
+  Serial.print(" | Temp: ");
+  Serial.print(temperatur);
+  Serial.print(" C, Hum: ");
+  Serial.print(feuchtigkeit);
+  Serial.print(" %, Pres: ");
+  Serial.print(luftdruck);
+  Serial.println(" hPa");
+
+  delay(1000);  // 1 Sekunde Pause, bevor der Loop neu startet
+}
