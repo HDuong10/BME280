@@ -3,11 +3,10 @@
 #include <Adafruit_SSD1306.h>
 #include <RTClib.h>
 
-// =====================
-// Definition der Pins und Adressen
-// =====================
-#define SDA_PIN 21              // I2C SDA-Pin (z. B. ESP32)
-#define SCL_PIN 22              // I2C SCL-Pin (z. B. ESP32)
+
+// I2C-Adressen des BME280
+#define SDA_PIN 21              // I2C SDA-Pin 
+#define SCL_PIN 22              // I2C SCL-Pin
 #define BME280_I2C_ADDRESS 0x76 // Standardadresse des BME280
 
 // OLED Display Einstellungen
@@ -22,11 +21,10 @@ RTC_DS3231 rtc;
 // BME280 Sensor Objekt
 Adafruit_BME280 bme;
 
-// =====================
+
 // Alarm-Einstellungen
-// =====================
 const int alarmHour = 7;     // Beispiel: Alarm um 07:00:00
-const int alarmMinute = 0;   // 
+const int alarmMinute = 0;    
 bool alarmTriggered = false; // Flag, damit der Alarm nicht mehrfach ausgelöst wird
 
 // Buzzer-Pin (Alarm)
@@ -78,9 +76,7 @@ void loop() {
   // Aktuelle Uhrzeit vom RTC abrufen
   DateTime jetzt = rtc.now();
 
-  // =====================
   // Anzeige auf dem OLED-Display
-  // =====================
   display.clearDisplay();
 
   // Uhrzeit (groß) anzeigen
@@ -116,9 +112,7 @@ void loop() {
 
   display.display();
 
-  // =====================
   // Alarm-Funktion (digitaler Wecker)
-  // =====================
   // Wenn die aktuelle Stunde und Minute mit der Alarmzeit übereinstimmen...
   if (jetzt.hour() == alarmHour && jetzt.minute() == alarmMinute) {
     if (!alarmTriggered) {
